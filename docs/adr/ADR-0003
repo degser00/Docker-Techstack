@@ -1,0 +1,33 @@
+# ADR-0003: Zero-Trust Ingress via Cloudflare Tunnels
+
+**Date:** 2025-11-06  
+**Status:** Proposed  
+**Deciders:** Owner
+
+---
+
+## Context
+Multiple self-hosted services are exposed to the internet.  
+We need a consistent approach for authentication, isolation, and auditability using Cloudflare Zero Trust.
+
+---
+
+## Decision
+Adopt **Cloudflare Zero Trust** as the single ingress layer, with **separate tunnels per logical service**:
+
+| Service | Subdomain | Tunnel | Cloudflare Access |
+|----------|------------|---------|--------------------|
+| LLM (Open WebUI) | `llm.example.com` | `llm-ui-tunnel` | ✅ Enabled |
+| n8n | `n8n.example.com` | `n8n-ui-tunnel` | ✅ Enabled |
+| Observability stack | `obs.example.com` | `observability-tunnel` | ✅ Enabled |
+| n8n Webhooks | `hooks.example.com` | `n8n-webhook-tunnel` | 🚫 Disabled (public) |
+
+Each tunnel uses its own routing and policy under Cloudflare Zero Trust Access.  
+Identity enforcement (SSO, MFA, posture checks) is handled entirely by Cloudflare.  
+
+---
+
+## Consequences
+- Clear service isolation and fine-grained policy control.  
+- Simplified monitoring and Access logs per service.  
+- Slightly more DNS and tunnel management overhead (acceptable).  
