@@ -1,0 +1,143 @@
+// Logging configuration
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+// ===== DOCKER CONTAINER LOG COLLECTION =====
+
+// Discover all Docker containers
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+// Relabel rules for log labels
+discovery.relabel "logs_docker" {
+  targets = discovery.docker.containers.targets
+  
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+  
+  rule {
+    source_labels = ["__meta_docker_container_log_stream"]
+    target_label  = "stream"
+  }
+  
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+    target_label  = "compose_project"
+  }
+  
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "compose_service"
+  }
+}
+
+// Collect Docker logs
+loki.source.docker "docker_logs" {
+  host          = "unix:///var/run/docker.sock"
+  targets       = discovery.docker.containers.targets
+  forward_to    = [loki.write.default.receiver]
+  relabel_rules = discovery.relabel.logs_docker.rules
+}
+
+// Write logs to Loki
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
+
+// ===== PROMETHEUS METRICS COLLECTION =====
+
+// Alloy self-monitoring
+prometheus.exporter.self "alloy" {}
+
+prometheus.scrape "alloy_metrics" {
+  targets    = prometheus.exporter.self.alloy.targets
+  forward_to = [prometheus.remote_write.default.receiver]
+}
+
+// Scrape Prometheus itself
+prometheus.scrape "prometheus" {
+  targets = [{
+    __address__ = "prometheus:9090",
+    job         = "prometheus",
+  }]
+  forward_to = [prometheus.remote_write.default.receiver]
+}
+
+// Scrape Loki metrics
+prometheus.scrape "loki" {
+  targets = [{
+    __address__ = "loki:3100",
+    job         = "loki",
+  }]
+  forward_to = [prometheus.remote_write.default.receiver]
+}
+
+// Discover containers for metrics scraping
+discovery.docker "metrics" {
+  host = "unix:///var/run/docker.sock"
+}
+
+// Relabel rules for Prometheus-labeled services
+discovery.relabel "prometheus_labeled_services" {
+  targets = discovery.docker.metrics.targets
+  
+  // Only keep containers with prometheus.io/scrape=true label
+  rule {
+    source_labels = ["__meta_docker_container_label_prometheus_io_scrape"]
+    action        = "keep"
+    regex         = "true"
+  }
+  
+  // Extract container name
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+  
+  // Use custom metrics path if specified
+  rule {
+    source_labels = ["__meta_docker_container_label_prometheus_io_path"]
+    regex         = "(.+)"
+    target_label  = "__metrics_path__"
+  }
+  
+  // Build address from container's first network IP and custom port
+  rule {
+    source_labels = ["__meta_docker_network_ip", "__meta_docker_container_label_prometheus_io_port"]
+    separator     = ":"
+    regex         = "(.+);(.+)"
+    target_label  = "__address__"
+    replacement   = "${1}:${2}"
+  }
+  
+  // Fallback: use first network IP with default port 80 if no port specified
+  rule {
+    source_labels = ["__meta_docker_network_ip", "__meta_docker_container_label_prometheus_io_port"]
+    separator     = ":"
+    regex         = "(.+);"
+    target_label  = "__address__"
+    replacement   = "${1}:80"
+  }
+}
+
+// Scrape discovered services
+prometheus.scrape "discovered_services" {
+  targets    = discovery.relabel.prometheus_labeled_services.output
+  forward_to = [prometheus.remote_write.default.receiver]
+}
+
+// Write metrics to Prometheus
+prometheus.remote_write "default" {
+  endpoint {
+    url = "http://prometheus:9090/api/v1/write"
+  }
+}
