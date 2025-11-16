@@ -92,12 +92,16 @@ services.
 
 ------------------------------------------------------------------------
 ``` mermaid
+%% ----------  FIXED  ----------
 flowchart TD
+    classDef darkNode  fill:#121212,stroke:#ffffff,stroke-width:2px,color:#ffffff
+    classDef darkZone  fill:#1e1e1e,stroke:#64b5f6,stroke-width:3px,color:#ffffff
+    classDef whiteText color:#ffffff
 
     subgraph Public["🌐 Public Internet"]
     end
 
-    Public -->|Cloudflared Tunnel| DMZ
+    Public -->|"Cloudflared Tunnel"| DMZ
 
     subgraph DMZ["🛡️ DMZ Node (Public Zone)"]
         direction TB
@@ -107,7 +111,7 @@ flowchart TD
         C4["Tailscale / Headscale Client"]
     end
 
-    DMZ -->|Zero-Trust Mesh (WireGuard)| Core
+    DMZ -->|"Zero-Trust Mesh (WireGuard)"| Core
 
     subgraph Core["🔒 Core Node (Private Zone)"]
         direction TB
@@ -118,7 +122,7 @@ flowchart TD
         N5["Tailscale / Headscale Client"]
     end
 
-    Core -->|Identity & Control| Infra
+    Core -->|"Identity & Control"| Infra
 
     subgraph Infra["⚙️ Infra Node (Control Plane)"]
         direction TB
@@ -126,6 +130,10 @@ flowchart TD
         I2["Authentik (Identity Provider)"]
         I3["Optional Infra: DNS, Backups, Logs"]
     end
+
+    %% apply styles
+    class Public,C1,C2,C3,C4,N1,N2,N3,N4,N5,I1,I2,I3 darkNode
+    class DMZ,Core,Infra darkZone
 ```
 ------------------------------------------------------------------------
 
