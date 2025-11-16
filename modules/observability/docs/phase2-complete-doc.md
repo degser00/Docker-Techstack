@@ -212,45 +212,73 @@ observability/obs-core/loki/loki-config.yml       # Loki config
 ## Architecture
 
 ```mermaid
-graph LR
-    User[👤 User<br/>localhost:3030] --> Grafana
-
-    subgraph obs["🔒 Observability Stack (obs-net)"]
-        Grafana[📊 Grafana<br/>:3000]
-        Prometheus[📈 Prometheus<br/>:9090]
-        Loki[📝 Loki<br/>:3100]
-        Alloy[🔄 Alloy<br/>:12345]
+flowchart LR
+    %% -------------------------------------------------
+    %%  USER
+    %% -------------------------------------------------
+    subgraph user ["👤 User Access"]
+        direction TB
+        U["🌐 localhost:3030"]
     end
 
-    subgraph apps["📦 Application Containers"]
-        N8N[n8n]
-        Postgres[postgres]
-        Ollama[ollama]
-        OpenWebUI[open-webui]
-        Other[playwright<br/>cloudflared<br/>...]
+    %% -------------------------------------------------
+    %%  APPLICATION CONTAINERS
+    %% -------------------------------------------------
+    subgraph apps ["📦 Application Containers"]
+        direction TB
+        N["n8n"]
+        DB["postgres"]
+        OLL["ollama"]
+        OWU["open-webui"]
+        PW["playwright<br/>cloudflared<br/>…"]
     end
 
-    Grafana -->|query| Prometheus
-    Grafana -->|query| Loki
-    
-    Alloy -->|push| Prometheus
-    Alloy -->|push| Loki
-    Alloy -->|scrape| Prometheus
-    Alloy -->|scrape| Loki
-    
-    Alloy -.->|collect logs| N8N
-    Alloy -.->|collect logs| Postgres
-    Alloy -.->|collect logs| Ollama
-    Alloy -.->|collect logs| OpenWebUI
-    Alloy -.->|collect logs| Other
+    %% -------------------------------------------------
+    %%  OBSERVABILITY STACK
+    %% -------------------------------------------------
+    subgraph obs ["🔒 Observability Stack (obs-net)"]
+        direction TB
+        A["🔄 Alloy<br/>:12345"]
+        P["📈 Prometheus<br/>:9090"]
+        L["📝 Loki<br/>:3100"]
+        G["📊 Grafana<br/>:3000<br/>(exposed :3030)"]
+    end
 
-    style Grafana fill:#ff6b6b,stroke:#333,stroke-width:2px,color:#fff
-    style Prometheus fill:#e67e22,stroke:#333,stroke-width:2px,color:#fff
-    style Loki fill:#9b59b6,stroke:#333,stroke-width:2px,color:#fff
-    style Alloy fill:#3498db,stroke:#333,stroke-width:2px,color:#fff
-    style User fill:#2ecc71,stroke:#333,stroke-width:2px,color:#fff
-    style obs fill:#34495e,stroke:#2c3e50,stroke-width:3px
-    style apps fill:#7f8c8d,stroke:#2c3e50,stroke-width:2px
+    %% -------------------------------------------------
+    %%  DATA FLOW
+    %% -------------------------------------------------
+    U -->|"HTTP"| G
+
+    N -.->|"logs"| A
+    DB -.->|"logs"| A
+    OLL -.->|"logs"| A
+    OWU -.->|"logs"| A
+    PW -.->|"logs"| A
+
+    A -->|"push metrics"| P
+    A -->|"push logs"| L
+
+    P -->|"query"| G
+    L -->|"query"| G
+
+    %% -------------------------------------------------
+    %%  COLOURS – dark zones, white text, white arrows
+    %% -------------------------------------------------
+    style U      fill:#a8e6cf,stroke:#56ab91,stroke-width:2px,color:#ffffff
+    style G      fill:#ffaaa5,stroke:#d16459,stroke-width:3px,color:#ffffff
+    style P      fill:#ffd3b6,stroke:#d19a6e,stroke-width:2px,color:#ffffff
+    style L      fill:#dda5e8,stroke:#a366b3,stroke-width:2px,color:#ffffff
+    style A      fill:#a5d8ff,stroke:#4dabf7,stroke-width:2px,color:#ffffff
+
+    style N      fill:#424242,stroke:#9e9e9e,stroke-width:1px,color:#ffffff
+    style DB     fill:#424242,stroke:#9e9e9e,stroke-width:1px,color:#ffffff
+    style OLL    fill:#424242,stroke:#9e9e9e,stroke-width:1px,color:#ffffff
+    style OWU    fill:#424242,stroke:#9e9e9e,stroke-width:1px,color:#ffffff
+    style PW     fill:#424242,stroke:#9e9e9e,stroke-width:1px,color:#ffffff
+
+    style user   fill:#121212,stroke:#81c784,stroke-width:2px,color:#ffffff
+    style obs    fill:#0d1b2a,stroke:#64b5f6,stroke-width:3px,color:#ffffff
+    style apps   fill:#1e1e1e,stroke:#bdbdbd,stroke-width:2px,color:#ffffff
 ```
 
 ---
