@@ -212,52 +212,45 @@ observability/obs-core/loki/loki-config.yml       # Loki config
 ## Architecture
 
 ```mermaid
-graph TB
-    subgraph "Local Access"
-        User[User<br/>localhost:3030]
+graph LR
+    User[👤 User<br/>localhost:3030] --> Grafana
+
+    subgraph obs["🔒 Observability Stack (obs-net)"]
+        Grafana[📊 Grafana<br/>:3000]
+        Prometheus[📈 Prometheus<br/>:9090]
+        Loki[📝 Loki<br/>:3100]
+        Alloy[🔄 Alloy<br/>:12345]
     end
 
-    subgraph "Grafana Module"
-        Grafana[Grafana<br/>:3000<br/>Port 3030 exposed]
-    end
-
-    subgraph "obs-net (Internal Network)"
-        Prometheus[Prometheus<br/>:9090<br/>No external port]
-        Loki[Loki<br/>:3100<br/>No external port]
-        Alloy[Alloy<br/>:12345<br/>No external port]
-    end
-
-    subgraph "Application Containers (docker0 bridge)"
+    subgraph apps["📦 Application Containers"]
         N8N[n8n]
-        Postgres[n8n-postgres]
-        Ollama[Ollama]
-        OpenWebUI[Open WebUI]
-        Playwright[Playwright]
-        Cloudflared[Cloudflared tunnels]
+        Postgres[postgres]
+        Ollama[ollama]
+        OpenWebUI[open-webui]
+        Other[playwright<br/>cloudflared<br/>...]
     end
 
-    User -->|HTTP| Grafana
-    Grafana -->|Query metrics| Prometheus
-    Grafana -->|Query logs| Loki
+    Grafana -->|query| Prometheus
+    Grafana -->|query| Loki
     
-    Alloy -->|Push metrics| Prometheus
-    Alloy -->|Push logs| Loki
-    Alloy -.->|Scrape metrics| Prometheus
-    Alloy -.->|Scrape metrics| Loki
-    Alloy -.->|Scrape metrics| Alloy
+    Alloy -->|push| Prometheus
+    Alloy -->|push| Loki
+    Alloy -->|scrape| Prometheus
+    Alloy -->|scrape| Loki
     
-    Alloy -->|Collect logs| N8N
-    Alloy -->|Collect logs| Postgres
-    Alloy -->|Collect logs| Ollama
-    Alloy -->|Collect logs| OpenWebUI
-    Alloy -->|Collect logs| Playwright
-    Alloy -->|Collect logs| Cloudflared
+    Alloy -.->|collect logs| N8N
+    Alloy -.->|collect logs| Postgres
+    Alloy -.->|collect logs| Ollama
+    Alloy -.->|collect logs| OpenWebUI
+    Alloy -.->|collect logs| Other
 
-    style Grafana fill:#f96,stroke:#333,stroke-width:2px
-    style Prometheus fill:#e74,stroke:#333,stroke-width:2px
-    style Loki fill:#f9f,stroke:#333,stroke-width:2px
-    style Alloy fill:#9cf,stroke:#333,stroke-width:2px
-    style User fill:#9f9,stroke:#333,stroke-width:2px
+    style Grafana fill:#ff6b6b,stroke:#333,stroke-width:2px,color:#fff
+    style Prometheus fill:#e67e22,stroke:#333,stroke-width:2px,color:#fff
+    style Loki fill:#9b59b6,stroke:#333,stroke-width:2px,color:#fff
+    style Alloy fill:#3498db,stroke:#333,stroke-width:2px,color:#fff
+    style User fill:#2ecc71,stroke:#333,stroke-width:2px,color:#fff
+    style obs fill:#34495e,stroke:#2c3e50,stroke-width:3px
+    style apps fill:#7f8c8d,stroke:#2c3e50,stroke-width:2px
 ```
 
 ---
