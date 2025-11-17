@@ -1,0 +1,12 @@
+services:
+  playwright:
+    container_name: playwright
+    image: mcr.microsoft.com/playwright:v1.56.1-jammy
+    working_dir: /app
+    volumes:
+      - ./playwright:/app
+    command: ["npm", "start"]
+    ports:
+      - "3100:3000"
+      - "9464:9464"
+    restart: unless-stopped

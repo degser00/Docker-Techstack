@@ -1,0 +1,26 @@
+# DATA VOLUMES (Postgres, Loki, Redis, Prometheus, etc.)
+**/data/
+
+# LOGS & RUNTIME STATE
+**/logs/
+**/tmp/
+**/cache/
+**/*.log
+
+# ENV FILES & SECRETS
+.env
+.env.*
+**/*.env
+docker-compose.override.yml
+
+# NODE / PYTHON DATA (e.g., open-webui)
+**/node_modules/
+__pycache__/
+
+# EDITOR / OS JUNK
+.vscode/
+.DS_Store
+Thumbs.db
+
+# OLLAMA MODELS
+**/models/

@@ -12,11 +12,13 @@ services:
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus
-    ports:
-      - "9090:9090"  # Temporary for testing - remove after Grafana deployment
+#    ports:
+#      - "9090:9090"  # Temporary for testing - remove after Grafana deployment
     networks:
       - obs-net
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
       interval: 30s
@@ -30,8 +32,8 @@ services:
     volumes:
       - ./loki/loki-config.yml:/etc/loki/loki-config.yml:ro
       - loki-data:/loki
-    ports:
-      - "3120:3100"  # Temporary for testing - remove after Grafana deployment (mapped to 3120 to avoid conflict)
+#    ports:
+#      - "3120:3100"  # Temporary for testing - remove after Grafana deployment (mapped to 3120 to avoid conflict)
     networks:
       - obs-net
     restart: unless-stopped
@@ -53,10 +55,11 @@ services:
       - ./alloy-config.alloy:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - alloy-data:/var/lib/alloy
-    ports:
-      - "12345:12345"  # Temporary for testing - remove after Grafana deployment
+#    ports:
+#      - "12345:12345"  # Temporary for testing - remove after Grafana deployment
     networks:
       - obs-net
+      - ai-net 
     depends_on:
       prometheus:
         condition: service_healthy
@@ -70,6 +73,8 @@ networks:
   obs-net:
     name: obs-net
     driver: bridge
+  ai-net:
+    external: true    # ai-net already exists, we just connect to it
 
 volumes:
   prometheus-data:

@@ -1,0 +1,106 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: n8n-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    networks:
+      - n8n-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      # Database
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: ${POSTGRES_DB}
+      DB_POSTGRESDB_USER: ${POSTGRES_USER}
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
+
+      # Auth
+      N8N_BASIC_AUTH_ACTIVE: true
+      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD}
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      N8N_LICENSE_KEY: ${N8N_LICENSE_KEY}
+
+      # Networking - Public endpoints
+      GENERIC_TIMEZONE: ${GENERIC_TIMEZONE}
+      WEBHOOK_URL: ${WEBHOOK_URL}
+      N8N_HOST: ${N8N_HOST}
+      N8N_PORT: ${N8N_PORT}
+      N8N_PROTOCOL: ${N8N_PROTOCOL}
+      
+      # Internal webhook support
+      N8N_SKIP_WEBHOOK_DEREGISTRATION_SHUTDOWN: true
+
+      # Execution settings
+      EXECUTIONS_DATA_SAVE_ON_SUCCESS: all
+      EXECUTIONS_DATA_SAVE_ON_ERROR: all
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: true
+
+      # Metrics (Phase 2.5 - Observability)
+      N8N_METRICS: true
+      N8N_METRICS_INCLUDE_DEFAULT_METRICS: true
+      N8N_METRICS_INCLUDE_WORKFLOW_ID_LABEL: true
+      N8N_METRICS_INCLUDE_NODE_TYPE_LABEL: true
+
+    volumes:
+      - ./data/n8n:/home/node/.n8n
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - n8n-net
+      - ai-net
+      - obs-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5678/"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 30s
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: postgres-exporter
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "host=n8n-postgres port=5432 user=${POSTGRES_USER} password='${POSTGRES_PASSWORD}' dbname=${POSTGRES_DB} sslmode=disable"
+    networks:
+      - n8n-net
+      - obs-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9187/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  n8n-net:
+    driver: bridge
+  ai-net:
+    external: true
+  obs-net:
+    external: true

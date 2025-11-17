@@ -1,0 +1,76 @@
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+  external_labels:
+    cluster: 'docker-local'
+    environment: 'production'
+
+# Alertmanager configuration (optional - add when implementing ADR-0008)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: []
+
+# Rule files for alerts (to be added in Phase 5)
+rule_files:
+  # - "alerts/*.yml"
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # Loki metrics
+  - job_name: 'loki'
+    static_configs:
+      - targets: ['loki:3100']
+        labels:
+          service: 'loki'
+
+  # Alloy metrics
+  - job_name: 'alloy'
+    static_configs:
+      - targets: ['alloy:12345']
+        labels:
+          service: 'alloy'
+
+  # Postgres exporter
+  - job_name: "postgres-exporter"
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+        labels:
+          service: "postgres"
+          
+  # Cloudflared n8n tunnel metrics
+  - job_name: cloudflared-n8n
+    static_configs:
+      - targets: ["host.docker.internal:4443"]
+        labels:
+          tunnel: n8n
+  
+  # Cloudflared hooks tunnel metrics
+  - job_name: cloudflared-hooks
+    static_configs:
+      - targets: ["host.docker.internal:4444"]
+        labels:
+          tunnel: hooks
+  
+  # Cloudflared llm tunnel metrics
+  - job_name: cloudflared-llm
+    static_configs:
+      - targets: ["host.docker.internal:4445"]
+        labels:
+          tunnel: llm
+  
+  #Playwright
+  - job_name: playwright
+    static_configs:
+      - targets: ["host.docker.internal:9464"]
+        labels:
+          service: playwright
+          
+  # Additional scrape configs will be handled by Alloy
+  # This section can be extended for static targets if needed

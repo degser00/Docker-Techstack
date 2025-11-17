@@ -1,0 +1,83 @@
+receivers:
+  # Receive OTLP data from instrumented applications
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+  
+  # Scrape Prometheus endpoints
+  prometheus:
+    config:
+      scrape_configs:
+        # n8n native metrics
+        - job_name: 'n8n'
+          static_configs:
+            - targets: ['n8n:5678']
+          metrics_path: '/metrics'
+        
+        # PostgreSQL exporter
+        - job_name: 'postgres'
+          static_configs:
+            - targets: ['postgres-exporter:9187']
+        
+        # Cloudflared metrics
+#        - job_name: 'cloudflared'
+#          static_configs:
+#            - targets: 
+#                - 'cloudflared-n8n:2000'
+#                - 'cloudflared-llm:2000'
+#                - 'cloudflared-hooks:2000'
+#          metrics_path: '/metrics'
+
+processors:
+  # Add resource attributes
+  resource:
+    attributes:
+      - key: service.name
+        action: insert
+        value: "otel-collector"
+  
+  # Batch telemetry data
+  batch:
+    timeout: 10s
+    send_batch_size: 1024
+
+
+exporters:
+  # Export to Prometheus via remote write
+  prometheusremotewrite:
+    endpoint: "http://prometheus:9090/api/v1/write"
+    tls:
+      insecure: true
+  
+  # Debug exporter (optional, for troubleshooting)
+  debug:
+    verbosity: detailed
+    sampling_initial: 5
+    sampling_thereafter: 200
+
+service:
+  pipelines:
+    # Metrics pipeline - this is what Prometheus will scrape
+    metrics:
+      receivers: [otlp, prometheus]
+      processors: [resource, batch]
+      exporters: [prometheusremotewrite]
+    
+    # Traces pipeline - send to Loki via OTLP HTTP (future)
+    traces:
+      receivers: [otlp]
+      processors: [resource, batch]
+      exporters: [debug]  # Just debug for now
+    
+    # Logs pipeline - Alloy already handles this
+    logs:
+      receivers: [otlp]
+      processors: [resource, batch]
+      exporters: [debug]  # Just debug for now
+
+  telemetry:
+    logs:
+      level: info

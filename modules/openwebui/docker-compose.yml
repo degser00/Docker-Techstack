@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    restart: unless-stopped
+    ports:
+      # Map host port (default 3000) to container's internal port 8080
+      - "${WEBUI_PORT:-3000}:8080"
+    volumes:
+      # Persist Open WebUI data (chats, settings, user data)
+      - open-webui-data:/app/backend/data
+    environment:
+      # URL to connect to Ollama instance on ai-net network
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL}
+      
+      # Force Open WebUI to always use the server-side Ollama connection
+      - ENABLE_OLLAMA_API=true
+      
+      # Secret key for session encryption (generate with: openssl rand -hex 32)
+      - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
+      
+      # Enable built-in authentication for local user management
+      - WEBUI_AUTH=true
+      
+      # Disable public signups - only admins can create users
+      - ENABLE_SIGNUP=false
+      
+      # Default role for new users created by admin
+      - DEFAULT_USER_ROLE=user
+    networks:
+      - ai-net
+
+networks:
+  # Connect to existing ai-net network where Ollama is running
+  ai-net:
+    external: true
+
+volumes:
+  # Local volume for persistent storage
+  open-webui-data:
+    driver: local

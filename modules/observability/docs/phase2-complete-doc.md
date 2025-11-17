@@ -212,73 +212,52 @@ observability/obs-core/loki/loki-config.yml       # Loki config
 ## Architecture
 
 ```mermaid
-flowchart LR
-    %% -------------------------------------------------
-    %%  USER
-    %% -------------------------------------------------
-    subgraph user ["👤 User Access"]
-        direction TB
-        U["🌐 localhost:3030"]
+graph TB
+    subgraph "Local Access"
+        User[User<br/>localhost:3030]
     end
 
-    %% -------------------------------------------------
-    %%  APPLICATION CONTAINERS
-    %% -------------------------------------------------
-    subgraph apps ["📦 Application Containers"]
-        direction TB
-        N["n8n"]
-        DB["postgres"]
-        OLL["ollama"]
-        OWU["open-webui"]
-        PW["playwright<br/>cloudflared<br/>…"]
+    subgraph "Grafana Module"
+        Grafana[Grafana<br/>:3000<br/>Port 3030 exposed]
     end
 
-    %% -------------------------------------------------
-    %%  OBSERVABILITY STACK
-    %% -------------------------------------------------
-    subgraph obs ["🔒 Observability Stack (obs-net)"]
-        direction TB
-        A["🔄 Alloy<br/>:12345"]
-        P["📈 Prometheus<br/>:9090"]
-        L["📝 Loki<br/>:3100"]
-        G["📊 Grafana<br/>:3000<br/>(exposed :3030)"]
+    subgraph "obs-net (Internal Network)"
+        Prometheus[Prometheus<br/>:9090<br/>No external port]
+        Loki[Loki<br/>:3100<br/>No external port]
+        Alloy[Alloy<br/>:12345<br/>No external port]
     end
 
-    %% -------------------------------------------------
-    %%  DATA FLOW
-    %% -------------------------------------------------
-    U -->|"HTTP"| G
+    subgraph "Application Containers (docker0 bridge)"
+        N8N[n8n]
+        Postgres[n8n-postgres]
+        Ollama[Ollama]
+        OpenWebUI[Open WebUI]
+        Playwright[Playwright]
+        Cloudflared[Cloudflared tunnels]
+    end
 
-    N -.->|"logs"| A
-    DB -.->|"logs"| A
-    OLL -.->|"logs"| A
-    OWU -.->|"logs"| A
-    PW -.->|"logs"| A
+    User -->|HTTP| Grafana
+    Grafana -->|Query metrics| Prometheus
+    Grafana -->|Query logs| Loki
+    
+    Alloy -->|Push metrics| Prometheus
+    Alloy -->|Push logs| Loki
+    Alloy -.->|Scrape metrics| Prometheus
+    Alloy -.->|Scrape metrics| Loki
+    Alloy -.->|Scrape metrics| Alloy
+    
+    Alloy -->|Collect logs| N8N
+    Alloy -->|Collect logs| Postgres
+    Alloy -->|Collect logs| Ollama
+    Alloy -->|Collect logs| OpenWebUI
+    Alloy -->|Collect logs| Playwright
+    Alloy -->|Collect logs| Cloudflared
 
-    A -->|"push metrics"| P
-    A -->|"push logs"| L
-
-    P -->|"query"| G
-    L -->|"query"| G
-
-    %% -------------------------------------------------
-    %%  COLOURS – dark zones, white text, white arrows
-    %% -------------------------------------------------
-    style U      fill:#a8e6cf,stroke:#56ab91,stroke-width:2px,color:#ffffff
-    style G      fill:#ffaaa5,stroke:#d16459,stroke-width:3px,color:#ffffff
-    style P      fill:#ffd3b6,stroke:#d19a6e,stroke-width:2px,color:#ffffff
-    style L      fill:#dda5e8,stroke:#a366b3,stroke-width:2px,color:#ffffff
-    style A      fill:#a5d8ff,stroke:#4dabf7,stroke-width:2px,color:#ffffff
-
-    style N      fill:#424242,stroke:#9e9e9e,stroke-width:1px,color:#ffffff
-    style DB     fill:#424242,stroke:#9e9e9e,stroke-width:1px,color:#ffffff
-    style OLL    fill:#424242,stroke:#9e9e9e,stroke-width:1px,color:#ffffff
-    style OWU    fill:#424242,stroke:#9e9e9e,stroke-width:1px,color:#ffffff
-    style PW     fill:#424242,stroke:#9e9e9e,stroke-width:1px,color:#ffffff
-
-    style user   fill:#121212,stroke:#81c784,stroke-width:2px,color:#ffffff
-    style obs    fill:#0d1b2a,stroke:#64b5f6,stroke-width:3px,color:#ffffff
-    style apps   fill:#1e1e1e,stroke:#bdbdbd,stroke-width:2px,color:#ffffff
+    style Grafana fill:#f96,stroke:#333,stroke-width:2px
+    style Prometheus fill:#e74,stroke:#333,stroke-width:2px
+    style Loki fill:#f9f,stroke:#333,stroke-width:2px
+    style Alloy fill:#9cf,stroke:#333,stroke-width:2px
+    style User fill:#9f9,stroke:#333,stroke-width:2px
 ```
 
 ---
