@@ -23,6 +23,7 @@ This document outlines the long-term evolution of the entire self-hosted platfor
 ### 3. Future Considerations
 - **Immich** — photo/video library
 - **Nextcloud AIO** — personal cloud + file storage
+- **OnlyOffice** document server 
 - **Obsidian (self-hosted plugins, remote vault)** — knowledge management
 - **Mealie** — recipe + meal planning
 
