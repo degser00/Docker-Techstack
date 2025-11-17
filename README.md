@@ -9,6 +9,8 @@ The goal is to keep things **reproducible**, **observable**, and **securely conn
 
 ## 📦 Contents
 
+- `cloudflared/` – Secure remote access tunnels via Cloudflare
+- `ghost/` – Website
 - `n8n/` – Automation workflows and supporting services  
 - `ollama/` – Local LLM backend  
 - `openwebui/` – Web UI interface for Ollama  
@@ -17,10 +19,10 @@ The goal is to keep things **reproducible**, **observable**, and **securely conn
   - Stores logs in a dedicated PostgreSQL instance (separate from workflow DBs)  
   - Enables structured analysis and auditing  
 - `nocodb/` – Lightweight data interface for managing structured data  
-- `grafana-stack/` – Observability and metrics (Grafana, Prometheus, Loki, etc.)  
-- `cloudflared/` – Secure remote access tunnels via Cloudflare  
 - `playwright/` – Browser automation and E2E testing for workflows and integrations  
-- `common/` – Shared configuration, volumes, and network definitions  
+- `observability/` – observability stack
+  - `grafana/` – Observability dashboards
+  - `obs-core` - Loki, Prometheus, Alloy, OTel collector 
 
 ---
 
