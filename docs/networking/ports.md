@@ -1,36 +1,69 @@
-# Ports Overview
-
-This document tracks all exposed and internal ports used across the tech stack for consistency, security review, and Cloudflare Zero Trust configuration.
+# Port & Exposure Matrix – Tech-Stack + Observability
 
 | Service | Purpose | Container Port | Host Port | Exposure | Notes |
-|----------|----------|----------------|------------|-----------|--------|
-| **n8n** | Workflow automation UI | 5678 | 5678 | ✅ Cloudflare tunnel (`cloudflared-n8n`) | Primary UI access |
-| **n8n Webhooks** | Workflow triggers | 5678 | 5678 | ✅ Cloudflare tunnel (`cloudflared-hooks`) | Path `/webhook/*` |
-| **PostgreSQL (n8n)** | Database backend | 5432 | – | 🔒 Internal network | Used by n8n; not exposed |
-| **Redis (n8n)** | Caching / queue | 6379 | – | 🔒 Internal only | Used by n8n; not exposed |
-| **Ollama** | Local LLM API | 11434 | – | 🔒 Internal network | Accessible via Open WebUI |
-| **Open WebUI** | LLM front-end | 3000 | 3000 | ✅ Cloudflare Tunnel (`cloudflared-llm`) | User-facing interface for Ollama; exposed via Zero Trust |
-| **Playwright** | Browser automation/testing | 3000 | 3100 | 🔒 Local Only | Used for test runs and internal validation only |
-| **Cloudflared (n8n)** | Tunnel client | – | – | n/a | Handles secure ingress |
-| **Cloudflared (LLM)** | Tunnel client | – | – | n/a | Handles secure ingress |
-| **Cloudflared (Hooks)** | Tunnel client | – | – | n/a | Handles webhook ingress |
-| **Cloudflared (Default)** | Legacy / unused tunnel | – | – | n/a | To be cleaned up |
-| **n8n ↔ Ollama Proxy** | LLM request/response logging | (TBD) | (TBD) | 🔒 Internal Network | Intercepts and logs all n8n ↔ Ollama/Open WebUI traffic to PostgreSQL |
+|---------|---------|----------------|-----------|----------|-------|
+| **n8n UI** | Workflow automation | 5678 | 5678 | ✅ Cloudflare tunnel `cloudflared-n8n` | Primary UI |
+| **n8n Webhooks** | Trigger endpoints | 5678 | 5678 | ✅ Cloudflare tunnel `cloudflared-hooks` | Path `/webhook/*` |
+| **PostgreSQL (n8n)** | App database | 5432 | – | 🔒 `n8n-net` only | Not exposed |
+| **Redis (n8n)** | Cache / queue | 6379 | – | 🔒 `n8n-net` only | Not exposed |
+| **Ollama** | Local LLM API | 11434 | – | 🔒 `ai-net` only | Accessed via Open-WebUI |
+| **Open-WebUI** | LLM front-end | 8080 | 3000 | ✅ Cloudflare tunnel `cloudflared-llm` | Zero-Trust protected |
+| **Playwright** | Test runner | 3000 | 3100 | 🔒 Local only | Host-bound, no external ingress |
+| **Cloudflared (n8n)** | Tunnel client | – | – | n/a | Handles `n8n` & `hooks` tunnels |
+| **Cloudflared (LLM)** | Tunnel client | – | – | n/a | Handles `open-webui` tunnel |
+| **Cloudflared (Hooks)** | Tunnel client | – | – | n/a | Dedicated webhook ingress |
+| **Observability Core** | | | | | |
+| **Prometheus** | Metrics TSDB | 9090 | – | 🔒 `obs-net` only | Accessed via Grafana |
+| **Loki** | Log store | 3100 | – | 🔒 `obs-net` only | Accessed via Grafana |
+| **Alloy** | Log collector / routing | 12345 | – | 🔒 `obs-net` only | No direct external access |
+| **OTel Collector** | OTLP ingest / export | 4317/4318, 8889 | – | 🔒 `obs-net` only | Scraped by Prometheus |
+| **Exporter Ports (host network)** | | | | | |
+| **postgres-exporter** | Postgres metrics | 9187 | 9187 | 🔒 Host only | Side-car to postgres |
+| **playwright-exporter** | Playwright metrics | 9115 | 9115 | 🔒 Host only | Side-car to playwright |
+| **ollama-exporter** | Ollama metrics | 9113 | 9113 | 🔒 Host only | Side-car to ollama |
+| **open-webui-exporter** | Open-WebUI metrics | 9114 | 9114 | 🔒 Host only | Side-car to open-webui |
 
----
 ### Exposure Legend
 
 | Symbol | Label | Meaning |
 |:-------|:------|:--------|
-| ✅ **Cloudflare Tunnel** | Exposed securely to the internet via Cloudflare Zero Trust | Public ingress with authentication, no direct host access |
-| 🔒 **Internal Network** | Accessible only to containers within specific shared Docker networks | Used for inter-service communication (e.g. n8n ↔ PostgreSQL ↔ Observability) |
-| 🔒 **Internal Only** | Isolated inside a single Docker Compose project | No cross-network or host access |
-| 🔒 **Local Only** | Bound to localhost on the host machine (e.g. `127.0.0.1:PORT`) | Reachable from the host but not externally accessible |
-| 🌐 **Public (Unsafe)** | Directly exposed via host IP without Cloudflare | Should be avoided unless temporary or protected by firewall |
+| ✅ **Cloudflare Tunnel** | Secure public ingress via Cloudflare Zero Trust | Auth-protected, no direct host exposure |
+| 🔒 **Internal Network** | Docker bridge network only | Inter-service traffic (e.g. n8n → Postgres) |
+| 🔒 **Local only** | Bound to `127.0.0.1` on host | Reachable from host, not external |
+| 🔒 **Host only** | Bound to `0.0.0.0:PORT` on host but not CF-tunnelled | Used by side-car exporters, scraped by Prometheus inside Docker |
 
+### Observability Metrics Sources
 
-### Notes
+| Container | Metrics Today | Scrape Job | Port | Type |
+|-----------|---------------|------------|------|------|
+| **n8n** | native `/metrics` | `n8n` | 5678 | native |
+| **postgres-exporter** | side-car `/metrics` | `postgres` | 9187 | side-car |
+| **cloudflared tunnels** | native `/metrics` | `cloudflared` | 4443-4445 | native |
+| **playwright** | side-car `/metrics` | `playwright` | 9115 | side-car |
+| **ollama** | side-car `/metrics` | `ollama` | 9113 | side-car |
+| **open-webui** | side-car `/metrics` | `open-webui` | 9114 | side-car |
 
-- Internal ports (Postgres, Redis) are on private Docker networks only.  
-- External access always goes through **Cloudflare Zero Trust tunnels**.  
-- Update this table whenever adding or changing service ports.
+All jobs defined in `obs-core/prometheus/prometheus.yml`.
+
+### Upgrade Safety
+
+- Side-car exporters use official images: `docker compose pull && docker compose up -d` upgrades everything without losing metrics.
+- Native endpoints (n8n, Cloudflared) survive image updates automatically.
+- No code changes required inside application containers.
+
+### Troubleshooting
+
+| Symptom | Check |
+|---------|-------|
+| Target **DOWN** in Prometheus | `docker exec prometheus wget -qO- localhost:9090/api/v1/targets` |
+| No logs in Loki | `docker exec alloy wget -qO- localhost:12345/-/ready` |
+| Missing metrics | `docker logs otel-collector --tail 20` |
+| Port conflict / bind error | `ss -ltn | grep :PORT` |
+
+### Security Notes
+
+- Private keys (`id_ed25519*`) are **git-ignored** — never commit them.
+- All external traffic enters via **Cloudflare Zero Trust tunnels**; no direct host exposure.
+- Exporter ports are **host-bound** but **not tunnelled** — scraped only by Prometheus inside Docker.
+
+Update this table whenever you add or change a service port.

@@ -68,9 +68,22 @@ scrape_configs:
   #Playwright
   - job_name: playwright
     static_configs:
-      - targets: ["host.docker.internal:9464"]
+      - targets: ["host.docker.internal:9115"]
         labels:
           service: playwright
-          
+  
+  #Ollama
+  - job_name: ollama
+    static_configs:
+      - targets: ["host.docker.internal:9113"]
+        labels:
+          service: ollama
+
+  #Open WebUI
+  - job_name: open-webui
+    static_configs:
+      - targets: ["host.docker.internal:9114"]
+        labels:
+          service: open-webui        
   # Additional scrape configs will be handled by Alloy
   # This section can be extended for static targets if needed

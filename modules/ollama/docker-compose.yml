@@ -4,15 +4,22 @@ services:
     container_name: ollama
     ports:
       - "11434:11434"
-      - "9090:9090"
     volumes:
       - .:/root/.ollama
     networks:
       - ai-net
     restart: unless-stopped
-    environment:
-      - OLLAMA_PROMETHEUS_ENABLED=true
-      - OLLAMA_PROMETHEUS_PORT=9090
+  
+  # side-car metrics
+  ollama-exporter:
+    image: prom/node-exporter:latest
+    container_name: ollama-exporter
+    pid: host
+    network_mode: host
+    command:
+      - --collector.processes
+      - --web.listen-address=:9113
+    restart: unless-stopped
 
 networks:
   ai-net:

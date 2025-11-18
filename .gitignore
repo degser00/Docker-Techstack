@@ -24,3 +24,8 @@ Thumbs.db
 
 # OLLAMA MODELS
 **/models/
+
+#cookies
+cookies.json
+*.cookies
+*.session

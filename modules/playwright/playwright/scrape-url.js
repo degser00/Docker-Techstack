@@ -1,6 +1,3 @@
-import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
-import { NodeSDK } from '@opentelemetry/sdk-node';
-new NodeSDK({ metricReader: new PrometheusExporter({ port: 9464, metricInterval: 5000 }) }).start();
 
 import express from 'express';
 import { chromium } from 'playwright';
