@@ -62,7 +62,6 @@ All jobs defined in `obs-core/prometheus/prometheus.yml`.
 
 ### Security Notes
 
-- Private keys (`id_ed25519*`) are **git-ignored** — never commit them.
 - All external traffic enters via **Cloudflare Zero Trust tunnels**; no direct host exposure.
 - Exporter ports are **host-bound** but **not tunnelled** — scraped only by Prometheus inside Docker.
 
