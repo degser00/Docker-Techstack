@@ -29,3 +29,13 @@ Thumbs.db
 cookies.json
 *.cookies
 *.session
+
+# SSH KEYS (protect private material)
+.ssh/
+*.pem
+*.key
+id_ed25519
+id_rsa
+*.pub
+*.priv
+*private*
