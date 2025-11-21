@@ -88,6 +88,31 @@ You’re welcome to adapt the structure and compose files to fit your own use ca
 
 ---
 
+## ⚠️ Disclaimer
+
+This project is maintained for personal use and educational documentation.  
+It is **not** intended as a ready-made production platform.
+
+---
+
+## 🔐 Security
+
+This repository contains no production secrets, no live endpoints, and no access keys.  
+It documents a personal self-hosted environment and does not represent a public service.
+
+Please do not submit security reports or disclosures.
+
+---
+
+## 🤝 Contributing
+
+This repository is **read-only**.  
+Pull requests and issues are not accepted.
+
+You are welcome to fork the project for your own use.
+
+---
+
 ## 📜 License
 
 This repository is licensed under the **MIT License**.  
