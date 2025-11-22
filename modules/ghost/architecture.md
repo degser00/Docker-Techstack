@@ -13,25 +13,25 @@ graph TD
     subgraph Internet
         UserBrowser[User Browser]
         Stripe[Stripe]
-        EmailProvider[Email Provider (SMTP/Mailgun)]
+        EmailProvider[Email Provider - SMTP/Mailgun]
     end
 
-    subgraph DMZ["DMZ Server (Untrusted Zone)"]
-        DMZGhost[Ghost - Public Frontend (Replica)]
-        ReverseProxy[NGINX / Caddy / Cloudflared]
+    subgraph DMZ
+        DMZGhost[Ghost Public Frontend - Replica]
+        ReverseProxy[NGINX/Caddy/Cloudflared]
     end
 
-    subgraph Core["Core Server (Trusted Zone)"]
-        CoreGhost[Ghost - Backend Authoring & Members]
+    subgraph Core
+        CoreGhost[Ghost Backend - Authoring/Members]
         CoreDB[(Ghost DB)]
-        CoreStorage[(Images / Files)]
-        SyncJob[One-way Deploy/Sync Pipeline]
+        CoreStorage[(Images/Files)]
+        SyncJob[One-way Deploy Sync Pipeline]
     end
 
     UserBrowser -->|HTTPS| ReverseProxy
     ReverseProxy --> DMZGhost
 
-    DMZGhost -->|Private API (VPN)| CoreGhost
+    DMZGhost -->|Private API/VPN| CoreGhost
 
     CoreGhost --> CoreDB
     CoreGhost --> CoreStorage
@@ -39,7 +39,7 @@ graph TD
     SyncJob -->|Content Only| DMZGhost
 
     CoreGhost -->|API| Stripe
-    Stripe -->|Webhooks (signed)| CoreGhost
+    Stripe -->|Webhooks - signed| CoreGhost
     CoreGhost -->|SMTP/API| EmailProvider
 ```
 
