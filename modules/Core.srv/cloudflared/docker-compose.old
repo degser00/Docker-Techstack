@@ -1,0 +1,22 @@
+# no observability
+services:
+  cloudflared-n8n: ## N8N UI tunnel
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared-n8n
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN_N8N}
+    network_mode: host
+
+  cloudflared-hooks: ## Webhooks tunnel
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared-hooks
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN_HOOKS}
+    network_mode: host
+
+  cloudflared-llm: ## Open WebUI tunnel
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared-llm
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN_LLM}
+    network_mode: host
