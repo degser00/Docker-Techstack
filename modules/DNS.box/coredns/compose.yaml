@@ -1,0 +1,23 @@
+services:
+  coredns:
+    image: coredns/coredns:latest
+    container_name: coredns
+    restart: unless-stopped
+
+    command: -conf /etc/coredns/Corefile
+
+    volumes:
+      - ./Corefile:/etc/coredns/Corefile
+      - ./zones:/zones
+
+    networks:
+      - infra-net
+
+    # DNS ports will only be enabled during cutover
+    ports:
+      - "53:53/udp"
+      - "53:53/tcp"
+
+networks:
+  infra-net:
+    external: true

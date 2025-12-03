@@ -1,0 +1,18 @@
+. {
+    forward . 1.1.1.1 9.9.9.9
+    log
+    errors
+}
+
+mydomain.com {
+    hosts {
+        <reverse-proxy-ip> service1.mydomain.com
+        <reverse-proxy-ip> service2.mydomain.com
+        <reverse-proxy-ip> n8n.mydomain.com
+        <reverse-proxy-ip> llm.mydomain.com
+        <reverse-proxy-ip> obs.mydomain.com
+        fallthrough
+    }
+    log
+    errors
+}

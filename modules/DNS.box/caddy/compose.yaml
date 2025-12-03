@@ -1,0 +1,23 @@
+services:
+  caddy:
+    image: caddy:latest
+    container_name: caddy
+    restart: unless-stopped
+
+    # Mount config + data (cert storage)
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./data:/data
+
+    # Networks this service participates in
+    networks:
+      - infra-net
+
+    # Ports (will only be enabled during cutover)
+    ports:
+      - "80:80"
+      - "443:443"
+
+networks:
+  infra-net:
+    external: true
