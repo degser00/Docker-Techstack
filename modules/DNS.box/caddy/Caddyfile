@@ -17,16 +17,38 @@ n8n.mydomain.com {
     reverse_proxy <service-host-ip>:<service-port>
 }
 
+postgres.n8n.obs.mydomain.com {
+    tls internal
+    reverse_proxy <n8n-vm-ip>:9187
+}
+
 llm.mydomain.com {
     tls internal
     reverse_proxy <service-host-ip>:<service-port>
 }
 
-obs.mydomain.com {
+obs.mydomain.com {  # Grafana dashboard endpoint
     tls internal
     reverse_proxy <service-host-ip>:<service-port>
 }
 
+
+metrics.obs.mydomain.com {  # Prometheus metrics endpoint
+    tls internal
+    reverse_proxy <service-host-ip>:<service-port>
+}
+
+
+logs.obs.mydomain.com {  # Loki logs endpoint
+    tls internal
+    reverse_proxy <service-host-ip>:<service-port>
+}
+
+
+#traces.obs.mydomain.com {   # Tempo traces endpoint 
+#    tls internal
+#    reverse_proxy <service-host-ip>:<service-port>
+#}
 
 # Refer to the Caddy docs for more information:
 # https://caddyserver.com/docs/caddyfile

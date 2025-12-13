@@ -85,6 +85,10 @@ services:
     restart: unless-stopped
     environment:
       DATA_SOURCE_NAME: "host=n8n-postgres port=5432 user=${POSTGRES_USER} password='${POSTGRES_PASSWORD}' dbname=${POSTGRES_DB} sslmode=disable"
+    
+    ports:  
+      - "9187:9187"
+    
     networks:
       - n8n-net
       - obs-net

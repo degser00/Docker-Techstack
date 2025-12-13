@@ -40,7 +40,7 @@ scrape_configs:
   # Postgres exporter
   - job_name: "postgres-exporter"
     static_configs:
-      - targets: ["postgres-exporter:9187"]
+      - targets: ["postgres.n8n.obs.mydomain.com:443"]
         labels:
           service: "postgres"
           
