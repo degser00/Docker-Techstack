@@ -1,205 +1,166 @@
-# Network Topology
+# Network Topology (Updated)
 
-This document defines the current and target network topology for the
-platform. It describes trust zones, communication paths, and
-allowed/blocked flows between DMZ, Core, Infra nodes, and public
-services.
+This document defines the **current network topology** after consolidation around Cloudflare + DMZ ingress + internal Proxmox + NAS tiers. It focuses on trust zones, communication paths, and allowed flows.
 
-------------------------------------------------------------------------
+---
 
 ## Trust Zones
 
-### **1. Public Zone**
+### 1. Public Zone
+- Internet users
+- Cloudflare edge
+- No direct access to internal services
 
--   Internet traffic
--   Cloudflare tunnel endpoints
--   No direct access to private services
+### 2. Guest WiFi DMZ
+- Untrusted network
+- Hosts **DMZ.box**
+- Public-facing workloads only
+- No direct LAN or storage access
 
-### **2. DMZ Zone**
+### 3. Tailscale VPN (Private Mesh)
+- Encrypted overlay network
+- Internal-only access
+- Strong identity-based access
 
--   Hosts public-facing services (Ghost, webhook ingress)
--   Runs Cloudflared + Reverse Proxy + Tailscale client
--   No LAN access, no access to storage
--   Only communicates with Core Node through zero‑trust mesh
+### 4. Internal Infrastructure
+- Proxmox cluster
+- NAS systems
+- Observability stack
+- Never exposed publicly
 
-### **3. Core Zone**
-
--   Hosts private services (n8n, AI, Observability, DBs)
--   Accessible only via mesh network (Tailscale / Headscale)
--   No public ingress
-
-### **4. Infra Zone**
-
--   Hosts control-plane services:
-    -   Headscale (self-hosted mesh controller)
-    -   Authentik (identity provider)
-    -   Optional: DNS, backups scheduler, log forwarders
--   Must never be exposed to the internet
-
-------------------------------------------------------------------------
+---
 
 ## Node Responsibilities
 
-### **DMZ Node**
+### DMZ.box (Guest WiFi / DMZ)
+- Ghost website
+- n8n webhook ingress
+- External access entrypoint for selected services
+- Cloudflared tunnel client
+- Only one outbound path: narrow tunnel to DNS VM
 
--   Public ingress via Cloudflared
--   Ghost website
--   n8n Webhook endpoint (forwarded to Core)
--   Reverse proxy (Caddy/Traefik)
--   Tailscale/Headscale client
--   No LAN access aside from mesh
+### DNS VM (Internal Proxmox)
+- CoreDNS
+- Caddy reverse proxy
+- Central traffic broker
+- Entry point for Cloudflare tunnel traffic and VPN user traffic
 
-### **Core Node (N5 Pro)**
+### CoreNAS
+- TrueNAS
+- 5×8 TB Z2 + 2 TB NVMe
+- Primary storage
+- Log sink for backups
+- No public exposure
 
--   n8n (private)
--   AI stack (Ollama + OpenWebUI)
--   Observability (Grafana, Loki, Prometheus)
--   Databases
--   Tailscale/Headscale client
+### MiniNAS
+- Windows-based NAS
+- SATA passthrough
+- Backup target and orchestrator
+- Forwards offsite backups to Backblaze
 
-### **Infra Node**
+### Observability Stack
+- Metrics
+- Logs
+- Monitoring
+- Internal only
 
--   Headscale (control plane)
--   Authentik (identity)
--   Optional: DNS, backups, infrastructure utilities
--   Minimal CPU/RAM usage
+### VPN User
+- Authenticated Tailscale user
+- Accesses internal services only via DNS VM
 
-------------------------------------------------------------------------
+---
 
 ## Topology Diagram
 
-                                 ┌────────────────────────────┐
-                                 │        Internet (Public)    │
-                                 └──────────────┬─────────────┘
-                                                │
-                                        Cloudflared Tunnel
-                                                │
-                                  ┌─────────────▼─────────────┐
-                                  │        DMZ Node            │
-                                  │ (Ghost + Proxy + Mesh)     │
-                                  └─────────────┬─────────────┘
-                                                │
-                                  Zero‑Trust Encrypted Mesh
-                               (Tailscale → Headscale Client)
-                                                │
-                     ┌──────────────────────────┴─────────────────────────┐
-                     │                                                    │
-         ┌──────────────────────┐                           ┌──────────────────────────┐
-         │      Core Node        │                           │        Infra Node        │
-         │ Private Apps & AI     │                           │ Headscale + Authentik    │
-         │ Tailscale/Headscale   │                           │ Optional Infra Services   │
-         └──────────────────────┘                           └──────────────────────────┘
-
-------------------------------------------------------------------------
-``` mermaid
-%% ----------  FIXED  ----------
-flowchart TD
-    classDef darkNode  fill:#121212,stroke:#ffffff,stroke-width:2px,color:#ffffff
-    classDef darkZone  fill:#1e1e1e,stroke:#64b5f6,stroke-width:3px,color:#ffffff
-    classDef whiteText color:#ffffff
-
-    subgraph Public["🌐 Public Internet"]
+```mermaid
+graph TB
+    subgraph "Guest WiFi (DMZ)"
+        DMZbox[DMZ.box<br/>Ghost + n8n webhooks + external access for services]
     end
 
-    Public -->|"Cloudflared Tunnel"| DMZ
-
-    subgraph DMZ["🛡️ DMZ Node (Public Zone)"]
-        direction TB
-        C1["Ghost (Public Website)"]
-        C2["Cloudflared Tunnel"]
-        C3["Reverse Proxy (Caddy/Traefik)"]
-        C4["Tailscale / Headscale Client"]
+    subgraph "Tailscale VPN"
+        VPNuser[VPN user]
+        subgraph "Internal Proxmox"
+            DNS[DNS VM<br/>CoreDNS + Caddy]
+            MININAS[MiniNAS<br/>Win + SATA passthrough]
+            OBS[Observability Stack]
+        end
+        CORENAS[CoreNAS<br/>TrueNAS 5×8TB Z-2 + 2TB NVMe]
     end
 
-    DMZ -->|"Zero-Trust Mesh (WireGuard)"| Core
+    WEB[Internet Users] -->|443| CF[Cloudflare]
+    CF -->|tunnel| DMZbox
 
-    subgraph Core["🔒 Core Node (Private Zone)"]
-        direction TB
-        N1["n8n (Private)"]
-        N2["Ollama + OpenWebUI (AI)"]
-        N3["Observability (Grafana/Loki/Prometheus)"]
-        N4["Databases"]
-        N5["Tailscale / Headscale Client"]
-    end
+    DMZbox -->|narrow tunnel| DNS
+    VPNuser -->|internal access| DNS
 
-    Core -->|"Identity & Control"| Infra
+    DNS -->|resolve / proxy| CORENAS
+    DNS -->|resolve / proxy| MININAS
+    DNS -->|resolve / proxy| OBS
 
-    subgraph Infra["⚙️ Infra Node (Control Plane)"]
-        direction TB
-        I1["Headscale (Mesh Controller)"]
-        I2["Authentik (Identity Provider)"]
-        I3["Optional Infra: DNS, Backups, Logs"]
-    end
-
-    %% apply styles
-    class Public,C1,C2,C3,C4,N1,N2,N3,N4,N5,I1,I2,I3 darkNode
-    class DMZ,Core,Infra darkZone
+    CORENAS -->|Robosync| MININAS
+    MININAS -.->|logs| MININAS
+    MININAS -->|robosync logs| CORENAS
+    MININAS -->|Backblaze| CLOUD[Backblaze Cloud]
 ```
-------------------------------------------------------------------------
+
+---
 
 ## Communication Matrix
 
-### **DMZ → Core**
+### Public to DMZ
+| Source | Destination | Method | Allowed |
+|------|------------|--------|--------|
+| Internet | Cloudflare | HTTPS 443 | Yes |
+| Cloudflare | DMZ.box | Tunnel | Yes |
 
-  Destination   Port            Purpose                        Allowed
-  ------------- --------------- ------------------------------ ---------
-  Core          `443`           reverse proxy → private APIs   ✔
-  Core          `5678`          n8n webhook backend            ✔
-  Core          DB ports        (*any*)                        ✖
-  Core          Observability   (*any*)                        ✖
-  LAN storage   (*any*)         ✖                              
+### DMZ to Internal
+| Destination | Purpose | Allowed |
+|------------|--------|--------|
+| DNS VM | Reverse proxy, routing | Yes |
+| Any other internal node | Direct access | No |
 
-### **Core → DMZ**
+### VPN User to Internal
+| Destination | Purpose | Allowed |
+|------------|--------|--------|
+| DNS VM | Entry point | Yes |
+| Other nodes | Direct | No |
 
-  Destination   Port                   Purpose                    Allowed
-  ------------- ---------------------- -------------------------- ---------
-  DMZ           `80/443`               health checks (optional)   ✔
-  DMZ           internal admin ports   ✖                          
+### Internal Flows
+| Source | Destination | Purpose | Allowed |
+|------|------------|--------|--------|
+| DNS VM | CoreNAS | Service proxy | Yes |
+| DNS VM | MiniNAS | Service proxy | Yes |
+| DNS VM | Observability | Metrics and UI | Yes |
+| CoreNAS | MiniNAS | Backup (Robosync) | Yes |
+| MiniNAS | CoreNAS | Backup logs | Yes |
+| MiniNAS | Backblaze | Offsite backup | Yes |
 
-### **Infra → Core/DMZ**
-
-  Destination                    Purpose                 Allowed
-  ------------------------------ ----------------------- ---------
-  Headscale → all clients        Mesh coordination       ✔
-  Authentik → Core               Identity                ✔
-  Authentik → DMZ                Token validation only   ✔
-  DMZ/Core → Infra admin ports   ✖ unless required       
-
-------------------------------------------------------------------------
+---
 
 ## Network Rules Summary
 
-### **DMZ**
+### DMZ.box
+- No LAN trust
+- No NAS access
+- No lateral movement
+- Single narrow tunnel only
 
--   No LAN access
--   No NAS access
--   No DB access
--   Only mesh traffic allowed to Core
--   Public ingress isolated
+### DNS VM
+- Central choke point
+- All ingress funnels through it
+- No public exposure
 
-### **Core**
+### Internal Nodes
+- No public ingress
+- No DMZ trust
+- Mesh-only access
 
--   Private-only applications
--   No public exposure
--   Mesh-only access permitted
+---
 
-### **Infra**
+## Architectural Outcome
 
--   Never in DMZ
--   Only accessible via mesh
--   Runs the identity & mesh control-plane
-
-------------------------------------------------------------------------
-
-## Target Architecture (Stage 2+)
-
--   Cloudflare remains for public ingress (Ghost, webhooks)
--   DMZ forwards to Core through Headscale mesh
--   Core runs all private services behind strict ACLs
--   Infra node manages identity + mesh
--   Full segmentation with zero-trust design
-
-------------------------------------------------------------------------
-
-This topology formalizes the separation required for high security, low
-blast radius, and self-hosted control over identity and networking.
+- Single controlled ingress point
+- Minimal blast radius
+- Clear separation of ingress, routing, storage, and backups
+- Strong zero-trust posture without over-complexity
