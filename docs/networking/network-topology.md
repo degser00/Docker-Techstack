@@ -1,4 +1,4 @@
-# Network Topology (Updated)
+# Network Topology
 
 This document defines the **current network topology** after consolidation around Cloudflare + DMZ ingress + internal Proxmox + NAS tiers. It focuses on trust zones, communication paths, and allowed flows.
 
@@ -164,3 +164,19 @@ graph TB
 - Minimal blast radius
 - Clear separation of ingress, routing, storage, and backups
 - Strong zero-trust posture without over-complexity
+
+---
+
+---
+
+## Changelog
+
+### v2 – 2025-12-23
+- Replaced Core/Infra split with DNS VM as central ingress choke point
+- Introduced Guest WiFi DMZ with narrow tunnel model
+- Clarified VPN user access path restrictions
+- Split primary storage and backup responsibilities across CoreNAS and MiniNAS
+
+### v1 – Initial
+- Original Core / Infra / DMZ topology
+
