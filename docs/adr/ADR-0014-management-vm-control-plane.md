@@ -58,6 +58,8 @@ This VM centralizes all high-privilege management tooling while remaining isolat
 - No public network exposure
 - No inbound access outside the Tailnet
 
+This SSH access model is uniform across all infrastructure VMs (DNS, observability, management).
+
 ### Fallback access
 - **Proxmox console access**
 - Used only if:
