@@ -22,11 +22,13 @@ The target architecture separates the system into three dedicated roles:
 - **AI compute** for model execution and derived AI state
 
 A clear definition of **data ownership** and **system of record** is required to avoid ambiguity, reduce complexity, and support independent scaling and recovery.
+This ADR defines the **target architecture** for a future state in which user compute, AI compute, and NAS roles are deployed on dedicated nodes. At present, these roles may be colocated on shared infrastructure. This document describes intended responsibilities and data ownership boundaries once separation is complete.
 
 ---
 
 ## Decision
 
+The following decision applies to the **intended steady-state architecture** and does not imply immediate changes to the current deployment topology.
 Adopt a **compute-centric data ownership model**.
 
 ### User Compute
@@ -57,7 +59,7 @@ Adopt a **compute-centric data ownership model**.
 
 ---
 
-## Data Flow
+## Data Flow (Target State)
 
 ```text
 User Interaction
@@ -90,6 +92,8 @@ User Compute Services
 ---
 
 ## Scope & Placement
+
+The scope described below reflects the desired end-state role separation. During transitional phases, multiple roles may coexist on the same physical or virtual host without violating this model.
 
 - **User compute**
   - Runs all user-facing applications
