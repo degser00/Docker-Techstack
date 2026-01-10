@@ -3,14 +3,14 @@
 **Date:** 2025-11-13  
 **Status:** Accepted  
 **Deciders:** Owner  
-**Relates:** ADR-0002 (Separation of Duties & Compliance), ADR-0007 / 0008 (Grafana → n8n Bridge)
+**Relates:** ADR-0002 (Separation of Duties & Compliance), ADR-0007 / 0008 (Grafana → n8n Bridge), ADR-0013 (Host-Level Log Collection)
 
 ---
 
 ## Context
 We require a **self-hosted observability stack** to monitor health, performance, and compliance metrics across **n8n**, the **AI Proxy**, **Ollama/OpenWebUI**, and related services — without collecting raw AI content.  
 
-The previous design used multiple agents (**Promtail**, **cAdvisor**, **Node Exporter**) to feed **Loki** and **Prometheus**.  
+The previous design used multiple agents (**Promtail**, **cAdvisor**, **Node Exporter**) to feed **Loki** and **Prometheus**, and in some cases per-application log sidecars.  
 We now replace those with **Grafana Alloy**, a single lightweight telemetry agent capable of collecting **logs, metrics, and traces**.
 
 Observability must consume only **metrics/logs** from the Proxy (see ADR-0002); content remains isolated.
@@ -25,6 +25,18 @@ Adopt a **modular observability stack** built on:
 - **Loki** — central log store  
 - **Grafana (OSS)** — visualization, alerting, correlation layer  
 - *(Optional)* **Tempo** — trace backend (future extension)
+
+---
+
+### Log Collection Model
+
+Log collection is performed at the **host / Docker-engine level**, not at the application level.
+
+- Grafana Alloy runs once per node
+- All container logs are collected automatically
+- No per-compose or per-container log configuration is permitted
+
+This model is defined in **ADR-0013 (Host-Level Log Collection)** and applies to all environments, including TrueNAS SCALE Apps.
 
 ---
 
@@ -128,3 +140,10 @@ Alerts are raised in Grafana and forwarded to **n8n** via webhook.
 - `/docs/security/zero-trust.md` – Cloudflare Grafana policy  
 - `/modules/observability/...` – compose projects and configs  
 - `/modules/proxy/...` – standalone Proxy compose + metrics config
+
+## Changelog
+
+| Date       | Change Type | Description | Decider |
+|------------|-------------|-------------|---------|
+| 2025-11-13 | Created | Initial definition of the modular observability stack using Grafana Alloy, Prometheus, Loki, and Grafana. Replaced multi-agent model with a unified telemetry agent. | Owner |
+| 2026-01-10 | Updated | Clarified log collection model as **host / Docker-engine level only**. Explicitly removed sidecar-based logging patterns. Added reference to ADR-0013 (Host-Level Log Collection). | Owner |
