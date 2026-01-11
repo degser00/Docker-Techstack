@@ -1,7 +1,7 @@
 # ADR-0012: Compute-Centric Data Ownership with Cold-Archive NAS
 
 **Date:** 2026-01-08  
-**Status:** Proposed  
+**Status:** Accepted 
 **Deciders:** Owner  
 **Relates to:** ADR-0011 (Backup Infrastructure Strategy), ADR-0010 (Email Archiving), ADR-0006 (Observability Core), ADR-0002 (AI Compliance Logging)
 
@@ -30,6 +30,17 @@ This ADR defines the **target architecture** for a future state in which user co
 
 The following decision applies to the **intended steady-state architecture** and does not imply immediate changes to the current deployment topology.
 Adopt a **compute-centric data ownership model**.
+
+### Deployment Clarification (Finalized)
+
+The finalized deployment model places **User Compute directly on TrueNAS SCALE (bare metal)**.
+
+User-facing applications are deployed as **standard Docker/Compose stacks** and managed centrally via **Portainer**. This avoids dependency on the TrueNAS Apps catalog and its opinionated lifecycle.
+
+- TrueNAS SCALE runs on **bare metal**
+- User-facing applications run as **Docker/Compose stacks**
+- Portainer is the central management interface for these stacks
+- **Proxmox is reserved exclusively for infrastructure and control-plane VMs** (DNS, observability, management)
 
 ### User Compute
 - Acts as the **system of record** for:
@@ -107,7 +118,9 @@ The scope described below reflects the desired end-state role separation. During
   - Performs inference and analysis
   - Maintains only reproducible or derived state
 
-All systems are deployed as VMs on a hypervisor with local storage passed through directly.
+Infrastructure and control-plane systems are deployed as VMs on a hypervisor.
+
+User Compute runs on **TrueNAS SCALE (bare metal)** and hosts user-facing applications as **Docker/Compose stacks** managed via **Portainer**.
 
 ---
 
@@ -148,6 +161,9 @@ Rejected — introduces operational complexity, locking, and failure ambiguity.
 ### 3. Distributed filesystem  
 Rejected — unnecessary complexity for the scale and use case.
 
+### 4. TrueNAS Apps catalog as the application runtime  
+Rejected — the Apps ecosystem is opinionated and couples application lifecycle to TrueNAS-specific mechanisms. Standard Docker/Compose stacks managed via Portainer provide consistent control across environments and reduce platform lock-in.
+
 ---
 
 ## Future Extensions
@@ -157,3 +173,10 @@ Rejected — unnecessary complexity for the scale and use case.
 - Faster rebuild workflows for compute nodes
 - Policy-driven lifecycle management for cold archives
 - Formal API contracts between user compute and AI compute
+
+## Changelog
+
+| Date       | Change Type | Description | Decider |
+|------------|-------------|-------------|---------|
+| 2026-01-08 | Created | Initial definition of compute-centric data ownership and separation between user compute, NAS, and AI compute roles. | Owner |
+| 2026-01-10 | Updated | Finalized deployment model placing User Compute on TrueNAS SCALE (bare metal) while running user-facing apps as standard Docker/Compose stacks managed centrally via Portainer; reserved Proxmox for infrastructure and control-plane VMs only. | Owner |
