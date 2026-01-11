@@ -2,6 +2,18 @@
 
 This document outlines the long-term evolution of the entire self-hosted platform, including third-party dependencies, identity, hosting strategy, modules, and access model.
 
+## Architectural Alignment
+
+This roadmap is aligned with the following architectural decisions:
+- ADR-0015 (Platform Topology and Device Classes)
+- ADR-0016 (Network Zones and Trust Boundaries)
+
+All roadmap stages assume:
+- Clear separation between DMZ, Internal, and Management zones
+- Stateless services run in the Internal zone
+- Authoritative user data resides only in the Management zone
+- Public exposure is limited to explicitly designated DMZ services
+
 ## 1. Third-Party Services (kept)
 
 - **VPN** — general web browsing privacy
@@ -29,6 +41,10 @@ This document outlines the long-term evolution of the entire self-hosted platfor
 
 
 ## 3. Access Model
+
+Access categories describe exposure intent only.  
+Actual placement and trust boundaries are defined by network zones per ADR-0016.
+
 ### Private (VPN-only)
 - Immich
 - Nextcloud
@@ -43,7 +59,10 @@ This document outlines the long-term evolution of the entire self-hosted platfor
 
 ## 4. Roadmap Stages
 ### Stage 0 — Current
-Everything via Cloudflared.
+Mixed access model.
+
+Some services are exposed via Cloudflared, while others are already private or locally accessed.  
+This stage predates full separation of DMZ, Internal, and Management zones.
 
 ### Stage 1 — VPN Separation
 Private services over Tailscale, public stays on Cloudflared.
@@ -60,7 +79,8 @@ Per-module improvements (see docs/modules/*)
 This section describes the staged introduction of a DMZ node and the transition from Tailscale to a fully self-hosted Headscale mesh. This ensures clean separation between public and private services, minimal blast radius, and a fully self-hosted zero-trust network.
 
 ### **0. Current — Minimal DMZ**
-- Deploy dedicated DMZ box on an isolated network (e.g., Guest WiFi / VLAN).  
+- Deploy dedicated DMZ box on an isolated network (e.g., Guest WiFi / VLAN).
+- DMZ node is treated as an untrusted zone per ADR-0016.
 - Run **Ghost** on the DMZ as the only public-facing application.  
 - No internal connectivity and no access to Core systems.  
 - Cloudflared Tunnel provides the public entrypoint.
@@ -68,7 +88,7 @@ This section describes the staged introduction of a DMZ node and the transition 
 ### **1. Next — Tailscale Integration**
 - Install **Tailscale** on both DMZ and Core nodes.  
 - Move all **public n8n webhooks** from the Core server to the DMZ.  
-- DMZ forwards webhooks → Core via the private Tailscale mesh.  
+- DMZ forwards webhooks → Internal services via the private Tailscale mesh.
 - Apply **strict Tailscale ACLs** so the DMZ can only reach specific Core ports.  
 - Core services (n8n, Observability, Authentik, etc.) remain fully private.
 
@@ -97,3 +117,20 @@ This section describes the staged introduction of a DMZ node and the transition 
 - Professional email with no server maintenance
 - Clean separation between public vs private access
 - Expandable platform for modules, automations, AI, and observability
+
+---
+
+**Note:**  
+This roadmap describes *when* changes happen.  
+*What is allowed to talk to what* and *under which trust assumptions* is defined in ADR-0015 and ADR-0016.
+
+---
+
+---
+
+## Changelog
+
+| Date       | Change                                                                 | Author |
+|------------|-------------------------------------------------------------------------|--------|
+| 2025-11-16 | Initial creation of platform roadmap                                   | Owner  |
+| 2026-01-11 | Aligned roadmap with ADR-0015 and ADR-0016; clarified DMZ trust model; corrected Stage 0 access description | Owner  |
