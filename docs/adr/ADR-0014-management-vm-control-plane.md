@@ -120,3 +120,4 @@ All future management tooling must be evaluated against this separation model.
 | Date       | Change Type | Description | Decider |
 |------------|-------------|-------------|---------|
 | 2026-01-10 | Created | Initial definition of a dedicated Management VM for control-plane tooling, including Portainer and Proxmox administration, with Tailscale-only SSH access and Proxmox console as fallback. | Owner |
+| 2026-01-11 | Updated | Added and expanded “Alternatives Considered” section to document rejected Portainer placement options and platform-level management tools. | Owner |
