@@ -99,9 +99,14 @@ This trade-off is explicitly accepted to reduce complexity.
 
 | Option | Reason Rejected |
 |------|----------------|
-| Portainer on Observability VM | Violates separation of duties; excessive blast radius |
-| Portainer on DNS VM | Couples always-on infra with admin tooling |
-| One VM per management tool | Overengineering for homelab scale |
+| Portainer colocated with Observability VM | Violates separation of duties; control-plane tooling would share a trust boundary with read-only telemetry infrastructure. |
+| Portainer colocated with DNS VM | Couples always-on core infrastructure with administrative tooling; increases blast radius during Docker restarts or management actions. |
+| Portainer on each Docker host | Fragmented control plane; no single source of administration; higher operational overhead. |
+| Coolify / CapRover | Introduces a PaaS abstraction that conflicts with explicit, infrastructure-first design; assumes Git-driven continuous deployment and ownership of ingress and lifecycle. |
+| CasaOS / app-store style UI | Appliance-oriented and opinionated; unsuitable for multi-host, infrastructure-grade management. |
+| Kubernetes + Helm | Excessive complexity and operational churn for homelab scale; rejected in favor of explicit Docker-based management. |
+| One VM per management tool | Overengineering for homelab scale; unnecessary fragmentation of control plane. |
+| No central management UI (CLI only) | Functional but reduces visibility and ergonomics; Portainer chosen as a lightweight, non-opinionated control plane. |
 
 ---
 
