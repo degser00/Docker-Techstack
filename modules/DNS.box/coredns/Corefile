@@ -1,4 +1,4 @@
-mydomain.com {
+. {
     template IN A mydomain.com {
         answer "{{ .Name }} 60 IN A dns_IP"
     }
