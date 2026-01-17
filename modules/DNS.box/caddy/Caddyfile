@@ -47,10 +47,6 @@
 	
     @photos host photos.mydomain.com
     reverse_proxy @photos service_VM_IP:port
-
-    handle {
-        respond "Not found" 404
-    }
 }
 
 # =====================================================
