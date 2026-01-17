@@ -8,8 +8,35 @@
 # this machine's public IP, then replace ":80" below with your
 # domain name.
 
+
+# IP --> device name or IP address
+
 {
     admin off
+}
+
+# =====================================================
+# Internal / private services (internal CA)
+# =====================================================
+
+mailarchive.mydomain.com {
+    tls internal
+    reverse_proxy IP:port
+}
+
+obs.mydomain.com {
+    tls internal
+    reverse_proxy IP:port
+}
+
+metrics.obs.mydomain.com {
+    tls internal
+    reverse_proxy IP:port
+}
+
+logs.obs.mydomain.com {
+    tls internal
+    reverse_proxy IP:port
 }
 
 # =====================================================
@@ -21,56 +48,42 @@
         dns cloudflare {env.CLOUDFLARE_API_TOKEN}
     }
 
-    @kanban host kanban.mydomain.com
-    reverse_proxy @kanban service_VM_IP:port
+    # The Lookup Table: maps the subdomain to a port
+    map {labels.2} {backend_port} {
+        kanban  port
+        n8n     port
+        cook    port
+        links   port
+        keep    port
+        drive   port
+        llm     port
+        ollama  port
+        photos  port
 
-    @n8n host n8n.mydomain.com
-    reverse_proxy @n8n service_VM_IP:port
+        # Everything else
+        default redirect
+    }
 
-    @cook host cook.mydomain.com
-    reverse_proxy @cook service_VM_IP:port
+    route {
+        # Handle actual services:
+        # This matches if a port was found and it's not 'skip' or 'redirect'
+        @is_service expression `{backend_port} != "redirect"`
+        handle @is_service {
+            reverse_proxy IP:{backend_port}
+        }
 
-    @links host links.mydomain.com
-    reverse_proxy @links service_VM_IP:port
-
-    @keep host keep.mydomain.com
-    reverse_proxy @keep service_VM_IP:port
-
-    @drive host drive.mydomain.com
-    reverse_proxy @drive service_VM_IP:port
-
-    @llm host llm.mydomain.com
-    reverse_proxy @llm service_VM_IP:port
-
-    @ollama host ollama.mydomain.com
-    reverse_proxy @ollama service_VM_IP:port
-	
-    @photos host photos.mydomain.com
-    reverse_proxy @photos service_VM_IP:port
+        # FALLBACK: If we reached this point, it's a random subdomain.
+        handle {
+            redir https://www.mydomain.com{uri} 302
+        }
+    }
 }
 
 # =====================================================
-# Internal / private services (internal CA)
+# Apex Redirect (The naked domain: mydomain.com)
 # =====================================================
-
-mailarchive.mydomain.com {
-    tls internal
-    reverse_proxy service_VM_IP:port
-}
-
-obs.mydomain.com {
-    tls internal
-    reverse_proxy obs_VM_IP:port
-}
-
-metrics.obs.mydomain.com {
-    tls internal
-    reverse_proxy obs_VM_IP:port
-}
-
-logs.obs.mydomain.com {
-    tls internal
-    reverse_proxy obs_VM_IP:port
+mydomain.com {
+    redir https://www.mydomain.com{uri} 302
 }
 
 # Refer to the Caddy docs for more information:
