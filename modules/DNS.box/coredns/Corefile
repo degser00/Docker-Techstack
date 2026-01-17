@@ -1,8 +1,14 @@
-. {
-    template IN A mydomain.com {
+# This block handles ONLY mydomain and its subdomains
+mydomain.com {
+    template IN A {
         answer "{{ .Name }} 60 IN A dns_IP"
     }
+    log
+    errors
+}
 
+# This block handles everything else (forwarding)
+. {
     forward . 1.1.1.1 9.9.9.9
     log
     errors
