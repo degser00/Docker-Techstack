@@ -1,15 +1,6 @@
 mydomain.com {
-    hosts {
-        <reverse-proxy-ip> service1.mydomain.com
-        <reverse-proxy-ip> service2.mydomain.com
-        <reverse-proxy-ip> n8n.mydomain.com
-        <reverse-proxy-ip> postgres.n8n.obs.mydomain.com
-        <reverse-proxy-ip> llm.mydomain.com
-        <reverse-proxy-ip> obs.mydomain.com           # Grafana endpoint
-        <reverse-proxy-ip> metrics.obs.mydomain.com   # Prometheus metrics endpoint
-        <reverse-proxy-ip> logs.obs.mydomain.com      # Loki logs endpoint
-#        <reverse-proxy-ip> traces.obs.mydomain.com    # Tempo traces endpoint (future)
-        fallthrough
+    template IN A mydomain.com {
+        answer "{{ .Name }} 60 IN A dns_IP"
     }
 
     forward . 1.1.1.1 9.9.9.9
