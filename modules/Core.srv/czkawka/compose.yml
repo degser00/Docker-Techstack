@@ -1,0 +1,9 @@
+services:
+  czkawka:
+    image: jlesage/czkawka
+    ports:
+      - '5800:5800'
+    volumes:
+      - /mnt/Fast/czkawka:/config:rw
+      - /mnt/Storage/Photos_archive:/photos_archive:ro
+      - /mnt/Storage/takeout:/takeout:rw
