@@ -1,0 +1,57 @@
+services:
+
+  gluetun:
+    image: qmcgaw/gluetun:latest
+    container_name: gluetun
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      - VPN_SERVICE_PROVIDER=private internet access
+      - OPENVPN_USER=your_pia_username
+      - OPENVPN_PASSWORD=your_pia_password
+      - SERVER_REGIONS=Netherlands
+      - TZ=Europe/Amsterdam
+    ports:
+      - 42080:8080    # qBittorrent WebUI
+      - 42901:6901    # Kasm Firefox (HTTPS)
+    volumes:
+      - /mnt/Storage/Path/VPN/gluetun:/gluetun
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/gluetun-entrypoint", "healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    network_mode: "service:gluetun"
+    environment:
+      - PUID=568
+      - PGID=568
+      - TZ=Europe/Amsterdam
+      - WEBUI_PORT=42080
+    volumes:
+      - /mnt/Storage/Path/VPN/qbittorrent/config:/config
+      - /mnt/Storage/Path/Downloads:/downloads
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    restart: unless-stopped
+
+  firefox:
+    image: kasmweb/firefox:latest
+    container_name: firefox
+    network_mode: "service:gluetun"
+    environment:
+      - VNC_PW=changeme
+    volumes:
+      - /mnt/Storage/Jellyfin/VPN/firefox/config:/home/kasm-user
+    shm_size: "1gb"
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    restart: unless-stopped
