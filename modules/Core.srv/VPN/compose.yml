@@ -52,7 +52,7 @@ services:
       - PUID=568                          # TrueNAS apps user
       - PGID=568
       - TZ=Europe/Amsterdam
-      - WEBUI_PORT=42080                  # must match port exposed in gluetun
+      - WEBUI_PORT=8080                  # must match port exposed in gluetun
     volumes:
       - /mnt/Storage/VPN/qbittorrent/config:/config
       - /mnt/Storage/Soft/Videos:/downloads
