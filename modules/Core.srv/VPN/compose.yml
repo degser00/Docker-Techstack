@@ -1,23 +1,36 @@
+# =============================================================================
+# VPN Stack: Gluetun + qBittorrent + Kasm Firefox
+# -----------------------------------------------------------------------------
+# All traffic from qBittorrent and Firefox is routed through Gluetun (PIA VPN).
+# If the VPN drops, both containers lose internet entirely — no leaks.
+# Ports are exposed on the host via Gluetun only (42080, 42901).
+# =============================================================================
+
 services:
 
+  # ---------------------------------------------------------------------------
+  # GLUETUN — VPN gateway (Private Internet Access)
+  # All other containers in this stack use its network stack.
+  # Healthcheck ensures qBittorrent and Firefox only start once VPN is live.
+  # ---------------------------------------------------------------------------
   gluetun:
     image: qmcgaw/gluetun:latest
     container_name: gluetun
     cap_add:
-      - NET_ADMIN
+      - NET_ADMIN                         # required to manage the VPN tunnel
     devices:
-      - /dev/net/tun:/dev/net/tun
+      - /dev/net/tun:/dev/net/tun         # TUN device for OpenVPN
     environment:
       - VPN_SERVICE_PROVIDER=private internet access
-      - OPENVPN_USER=your_pia_username
-      - OPENVPN_PASSWORD=your_pia_password
-      - SERVER_REGIONS=Netherlands
+      - OPENVPN_USER=your_pia_username    # your PIA username
+      - OPENVPN_PASSWORD=your_pia_password # your PIA password
+      - SERVER_REGIONS=Netherlands        # PIA region to connect to
       - TZ=Europe/Amsterdam
     ports:
-      - 42080:8080    # qBittorrent WebUI
-      - 42901:6901    # Kasm Firefox (HTTPS)
+      - 42080:8080    # qBittorrent WebUI → torrent.segalis.com
+      - 42901:6901    # Kasm Firefox (HTTPS) → browser.segalis.com
     volumes:
-      - /mnt/Storage/Path/VPN/gluetun:/gluetun
+      - /mnt/Storage/VPN/gluetun:/gluetun  # VPN state/config
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "/gluetun-entrypoint", "healthcheck"]
@@ -25,33 +38,48 @@ services:
       timeout: 10s
       retries: 3
 
+  # ---------------------------------------------------------------------------
+  # QBITTORRENT — torrent download client
+  # Runs entirely inside Gluetun's network — no direct internet access.
+  # WebUI accessible at http://<nas-ip>:42080 (or via Caddy subdomain).
+  # Downloads land in /mnt/Storage/Soft/Videos.
+  # ---------------------------------------------------------------------------
   qbittorrent:
     image: lscr.io/linuxserver/qbittorrent:latest
     container_name: qbittorrent
-    network_mode: "service:gluetun"
+    network_mode: "service:gluetun"       # all traffic via VPN
     environment:
-      - PUID=568
+      - PUID=568                          # TrueNAS apps user
       - PGID=568
       - TZ=Europe/Amsterdam
-      - WEBUI_PORT=42080
+      - WEBUI_PORT=42080                  # must match port exposed in gluetun
     volumes:
-      - /mnt/Storage/Path/VPN/qbittorrent/config:/config
-      - /mnt/Storage/Path/Downloads:/downloads
+      - /mnt/Storage/VPN/qbittorrent/config:/config
+      - /mnt/Storage/Soft/Videos:/downloads
     depends_on:
       gluetun:
-        condition: service_healthy
+        condition: service_healthy        # won't start until VPN is confirmed up
     restart: unless-stopped
 
+  # ---------------------------------------------------------------------------
+  # FIREFOX (Kasm) — VPN-routed browser in a browser
+  # Access at https://<nas-ip>:42901 (or via Caddy subdomain).
+  # Use for torrent site browsing or any session you want behind VPN.
+  # Persists browser profile in /mnt/Storage/VPN/firefox/config.
+  #
+  # NOTE: rolling-daily tag updates Firefox nightly within the 1.18.0 release
+  # line. When Kasm releases 1.19.0, manually bump the tag to 1.19.0-rolling-daily.
+  # ---------------------------------------------------------------------------
   firefox:
-    image: kasmweb/firefox:latest
+    image: kasmweb/firefox:1.18.0-rolling-daily
     container_name: firefox
-    network_mode: "service:gluetun"
+    network_mode: "service:gluetun"       # all traffic via VPN
     environment:
-      - VNC_PW=changeme
+      - VNC_PW=changeme                   # password for the in-browser session
     volumes:
-      - /mnt/Storage/Jellyfin/VPN/firefox/config:/home/kasm-user
-    shm_size: "1gb"
+      - /mnt/Storage/VPN/firefox/config:/home/kasm-user
+    shm_size: "1gb"                       # shared memory for browser rendering
     depends_on:
       gluetun:
-        condition: service_healthy
+        condition: service_healthy        # won't start until VPN is confirmed up
     restart: unless-stopped
